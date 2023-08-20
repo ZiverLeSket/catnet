@@ -14,13 +14,12 @@ from PIL import Image
 DB_USER = os.getenv("DB_USER")
 DB_PASS = os.getenv("DB_PASS")
 
-app = Flask("aboba")
+app = Flask("catnet")
 
 env = Environment(loader=FileSystemLoader("templates/"))
 
 mongodb_client = pymongo.MongoClient("mongodb://localhost:27017/", username=DB_USER, password=DB_PASS)
 mydb = mongodb_client["mydatabase"]
-
 catsdb = mydb["cats"]
 
 with open("templates/upload.html", "r") as upload:
@@ -29,15 +28,14 @@ with open("templates/upload.html", "r") as upload:
 def resize_image(path:str):
     image = Image.open(path)
     if image.width < 300 or image.height < 300:
+        os.unlink(path=path)
         return None
     if image.width > 1080:
         image = image.resize(size=(1080, int(image.height*(1080/image.width))))
     if image.height > 1080:
         image = image.resize(size=(int((image.width*(1080/image.height))), 1080))
     image.save(path)
-    return 0
-
-
+    return 1
 
 @app.route("/<id>")
 def showcat(id):
@@ -50,19 +48,17 @@ def showcat(id):
     }
     return cat_profile.render(content)
 
-
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_cat():
     if request.method == 'POST':
-        print("aboba")
+        error = env.get_template("error.html")
         id = int(time()) << 32 | catsdb.count_documents(filter={})
         coded_id = base58.b58encode(id.to_bytes(8)).decode("utf-8")
         catdesc = request.values['description']
         catfile = request.files['cat']
         catfile.save(f'static/images/{coded_id}.jpg')
         if not resize_image(f'static/images/{coded_id}.jpg'):
-            return "<p>У вас кот слишком маленьбкий жестц</p>"
+            return error.render({"error_text": "Ваш кот слишком маленьковый жестб, давай кота побольбше"})
         catsdb.insert_one({"catid": coded_id, "description": catdesc})
-        # catfile.save(f'static/images/{coded_id}.jpg')
-        return "<p>Вы абоба я все сохранил</p>"
+        return error.render({"error_text": f"Ваш кот забран, алах назвал его вот так {coded_id}"})
     return upload_page
