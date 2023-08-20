@@ -1,0 +1,68 @@
+from flask import (
+    Flask, 
+    request
+)
+from jinja2 import Environment, FileSystemLoader
+import pymongo
+from dotenv import load_dotenv
+load_dotenv()
+
+import os
+import base58
+from time import time
+from PIL import Image
+DB_USER = os.getenv("DB_USER")
+DB_PASS = os.getenv("DB_PASS")
+
+app = Flask("aboba")
+
+env = Environment(loader=FileSystemLoader("templates/"))
+
+mongodb_client = pymongo.MongoClient("mongodb://localhost:27017/", username=DB_USER, password=DB_PASS)
+mydb = mongodb_client["mydatabase"]
+
+catsdb = mydb["cats"]
+
+with open("templates/upload.html", "r") as upload:
+        upload_page = upload.read()
+
+def resize_image(path:str):
+    image = Image.open(path)
+    if image.width < 300 or image.height < 300:
+        return None
+    if image.width > 1080:
+        image = image.resize(size=(1080, int(image.height*(1080/image.width))))
+    if image.height > 1080:
+        image = image.resize(size=(int((image.width*(1080/image.height))), 1080))
+    image.save(path)
+    return 0
+
+
+
+@app.route("/<id>")
+def showcat(id):
+    cat_profile = env.get_template("catpicture.html")
+    catdata = catsdb.find_one({"catid": str(id)})
+    content = {
+    "catname": "cat", 
+    "cat_id": id, 
+    "catdescription": catdata["description"]
+    }
+    return cat_profile.render(content)
+
+
+@app.route('/upload', methods=['GET', 'POST'])
+def upload_cat():
+    if request.method == 'POST':
+        print("aboba")
+        id = int(time()) << 32 | catsdb.count_documents(filter={})
+        coded_id = base58.b58encode(id.to_bytes(8)).decode("utf-8")
+        catdesc = request.values['description']
+        catfile = request.files['cat']
+        catfile.save(f'static/images/{coded_id}.jpg')
+        if not resize_image(f'static/images/{coded_id}.jpg'):
+            return "<p>У вас кот слишком маленьбкий жестц</p>"
+        catsdb.insert_one({"catid": coded_id, "description": catdesc})
+        # catfile.save(f'static/images/{coded_id}.jpg')
+        return "<p>Вы абоба я все сохранил</p>"
+    return upload_page

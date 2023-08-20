@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link href="/static/styles/droplist.css" rel="stylesheet">
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Catserver:{{catname}}</title>
+    </head>
+    <body>
+        <div class="dropdown"> 
+            <button class="dropdown-button">Menu</button> 
+            <div class="dropdown-list"> 
+                <a href="/feed">Feed</a> 
+                <a href="/upload">Upload</a> 
+            </div> 
+        </div> 
+        <form action="/upload" method="post" enctype="multipart/form-data" style="text-align: center;">
+            <input type="file" id="cat" name="cat">
+            <input type="text" id="description" name="description">
+            <input type="submit">
+        </form>
+    </body>
+</html>
