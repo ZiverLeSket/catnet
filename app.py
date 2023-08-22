@@ -1,16 +1,19 @@
 from flask import (
     Flask, 
-    request
+    request,
+    make_response,
+    send_from_directory,
+    redirect,
 )
 from jinja2 import Environment, FileSystemLoader
 import pymongo
-from dotenv import load_dotenv
-load_dotenv()
-
 import os
 import base58
 from time import time
 from PIL import Image
+from bson import json_util as json
+from dotenv import load_dotenv
+load_dotenv()
 DB_USER = os.getenv("DB_USER")
 DB_PASS = os.getenv("DB_PASS")
 
@@ -23,7 +26,10 @@ mydb = mongodb_client["mydatabase"]
 catsdb = mydb["cats"]
 
 with open("templates/upload.html", "r") as upload:
-        upload_page = upload.read()
+    upload_page = upload.read()
+
+with open("templates/feed.html") as feed_file:
+    feedhtml = feed_file.read()
 
 def resize_image(path:str):
     image = Image.open(path)
@@ -40,7 +46,7 @@ def resize_image(path:str):
 @app.route("/<id>")
 def showcat(id):
     cat_profile = env.get_template("catpicture.html")
-    catdata = catsdb.find_one({"catid": str(id)})
+    catdata:dict = catsdb.find_one({"catid": str(id)})
     content = {
     "catname": "cat", 
     "cat_id": id, 
@@ -62,3 +68,23 @@ def upload_cat():
         catsdb.insert_one({"catid": coded_id, "description": catdesc})
         return error.render({"error_text": f"Ваш кот забран, алах назвал его вот так {coded_id}"})
     return upload_page
+
+@app.route('/feed-update/<int:pos>', methods=['GET'])
+def feed_apdate(pos):
+    catdata = list(catsdb.find().sort("_id", -1).skip(pos*5).limit(5))
+    print(catdata)
+    response = make_response(json.dumps(catdata))
+    response.headers["Content-Type"] = "application/json; charset=UTF-8"
+    return response
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory("static/icons", "favicon.ico")
+
+@app.route('/feed')
+def feed():
+    return feedhtml
+
+@app.route('/')
+def redirect_to_feed():
+    return redirect('/feed', code=302)

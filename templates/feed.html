@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <link href="/static/styles/droplist.css" rel="stylesheet">
+<link href="/static/styles/center.css" rel="stylesheet">
 <html>
     <head>
         <meta charset="utf-8" />
-        <title>Catserver Upload</title>
+        <title>Catserver Feed</title>
     </head>
     <body>
         <div class="dropdown"> 
@@ -12,11 +13,8 @@
                 <a href="/feed">Feed</a> 
                 <a href="/upload">Upload</a> 
             </div> 
-        </div> 
-        <form action="/upload" method="post" enctype="multipart/form-data" style="text-align: center;">
-            <input type="file" id="cat" name="cat">
-            <input type="text" id="description" name="description">
-            <input type="submit">
-        </form>
+        </div>
+        <div id="feed" ></div>
+        <script src="/static/js/feed.js"></script>
     </body>
 </html>
